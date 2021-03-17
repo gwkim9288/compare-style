@@ -1,10 +1,12 @@
 package com.example.comparestyle.accounts;
 
+import com.example.comparestyle.region.Region;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
+import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Builder
@@ -16,8 +18,15 @@ import javax.persistence.Id;
 public class Account {
     @Id
     @GeneratedValue
+    @Column(name = "account_id")
     private Long id;
 
     private String username;
     private String email;
+
+
+    @OneToMany(mappedBy = "manager")
+    private List<Region> regions = new ArrayList<>();
+
+
 }
