@@ -17,6 +17,7 @@ public class AccountResource extends EntityModel<AccountResponse> {
     public static EntityModel<AccountResponse> modelOf(Account account) {
 
         AccountResponse accountResponse = new AccountResponse();
+        accountResponse.setId(account.getId());
         accountResponse.setEmail(account.getEmail());
         accountResponse.setUsername(account.getUsername());
         List<Region> regions = account.getRegions();

@@ -15,6 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AccountResponse implements Serializable {
+    private Long id;
     private String username;
     private String email;
     private List<String> regions = new ArrayList<>();
