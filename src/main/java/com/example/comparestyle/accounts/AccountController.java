@@ -1,6 +1,10 @@
 package com.example.comparestyle.accounts;
 
+import com.example.comparestyle.accountZone.AccountZone;
+import com.example.comparestyle.accountZone.AccountZoneRepository;
 import com.example.comparestyle.commons.ErrorResource;
+import com.example.comparestyle.zone.Zone;
+import com.example.comparestyle.zone.ZoneRepository;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -11,6 +15,7 @@ import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,6 +34,9 @@ public class AccountController {
     private final AccountRepository accountRepository;
     private final AccountValidator accountValidator;
     private final ModelMapper modelMapper;
+    private final ZoneRepository zoneRepository;
+    private final AccountZoneRepository accountZoneRepository;
+    
 
 
     /**
@@ -45,7 +53,7 @@ public class AccountController {
     @GetMapping
     public ResponseEntity queryAccounts(Pageable pageable, PagedResourcesAssembler<Account> assembler) {
         Page<Account> paged = accountRepository.findAll(pageable);
-        PagedModel<EntityModel<Account>> accountResource = assembler.toModel(paged, p -> AccountResource.modelOf(p));
+        PagedModel<EntityModel<AccountResponse>> accountResource = assembler.toModel(paged, p -> AccountResource.modelOf(p));
         //원래는 ROLE_USER권한인 사람들에게만
         accountResource.add(linkTo(AccountController.class).withRel("create-account"));
         return ResponseEntity.ok(accountResource);
@@ -57,7 +65,7 @@ public class AccountController {
         if (byId.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        EntityModel<Account> accountResource = AccountResource.modelOf(byId.get());
+        EntityModel<AccountResponse> accountResource = AccountResource.modelOf(byId.get());
         accountResource.add(linkTo(AccountController.class).withRel("query-accounts"));
         // put도 만들어서 update추가해줘야한다
 
@@ -82,7 +90,7 @@ public class AccountController {
         // == /accounts/{id}
 
         //다음상태로 전이가능한 링크 hateoas를 만족 // 여기서는 셀프로 자기자신으로 가는링크와 전체 어카운트를 조회하는 링크추가
-        EntityModel<Account> accountResource = AccountResource.modelOf(saved);
+        EntityModel<AccountResponse> accountResource = AccountResource.modelOf(saved);
         accountResource.add(linkTo(AccountController.class).withRel("query-accounts"));
 
         return ResponseEntity.created(createdUri).body(accountResource);
@@ -92,6 +100,47 @@ public class AccountController {
     public ResponseEntity removeAccount(@PathVariable Long id) {
         accountRepository.deleteById(id);
         return ResponseEntity.ok().build();
+    }
+
+
+    /**
+     * ==   =   =   =   ==  =   === -    -   -   -   -   -   -   -
+     * post - postTag - tag를 가정하여
+     * account - accountZone - zone을 통해 다대다 풀어나가기 테스트
+     */
+
+    @PostMapping("/zone")
+    public ResponseEntity createZone(@RequestBody AZDto azDto) {
+        // 여기서는 틀만 복습해보기위해 그냥 controller에서 구현
+        //당연히 프로젝트 구현할 땐 서비스단으로 빼줘서 로직처리
+        // 우리프로젝트에서는 타이틀 일정 태그입력받고 세션에 저장된 유저id로 db에서 찾아와서 manager세팅
+        // 이 후 태그 하나씩 만들어서 태그저장하면서 plan.getTagItem().add(만든태그)
+        String[] split = azDto.getZone().split(",");
+
+        Account account = new Account();
+        account.setEmail(azDto.getEmail());
+        account.setUsername(azDto.getUsername());
+        Account saved = accountRepository.save(account);
+
+
+        for (String s : split) {
+            Zone zone = new Zone();
+            zone.setStreet(s);
+            Zone save = zoneRepository.save(zone);
+
+            AccountZone accountZone = new AccountZone();
+            accountZone.setZoneUser(saved);
+            accountZone.setZone(save);
+            AccountZone save1 = accountZoneRepository.save(accountZone);
+            //양방향이니까 다에서 먼저 set하고 1에서도 setting해줘
+            account.getAccountZones().add(save1);
+        }
+
+        /**  응답용 dto(accountResponse // 우리프로젝트에서는 아마 post and planResponse)를 만들고
+         * 리소스 클래스의 static modelOf함수에서 다 변환시켜줘야함
+         * 안그럼 직렬화하라는 에러가난다 */
+        EntityModel<AccountResponse> accountResource = AccountResource.modelOf(saved);
+        return ResponseEntity.ok(accountResource);
     }
 
 }

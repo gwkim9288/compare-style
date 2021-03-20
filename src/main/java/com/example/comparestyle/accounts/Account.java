@@ -1,10 +1,12 @@
 package com.example.comparestyle.accounts;
 
+import com.example.comparestyle.accountZone.AccountZone;
 import com.example.comparestyle.region.Region;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,7 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = "id")
-public class Account {
+public class Account implements Serializable {
     @Id
     @GeneratedValue
     @Column(name = "account_id")
@@ -28,5 +30,6 @@ public class Account {
     @OneToMany(mappedBy = "manager")
     private List<Region> regions = new ArrayList<>();
 
-
+    @OneToMany(mappedBy = "zoneUser")
+    private List<AccountZone> accountZones = new ArrayList<>();
 }
